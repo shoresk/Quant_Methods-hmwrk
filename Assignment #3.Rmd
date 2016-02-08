@@ -1,0 +1,125 @@
+
+---
+title: 'Assignment #3'
+author: "Sarah Kate Shore"
+date: "February 2, 2016"
+output: pdf_document
+---
+
+```{r}
+trees = read.csv('http://dmcglinn.github.io/quant_methods/data/treedata_subset.csv')
+head(trees)
+```
+
+```{r}
+acer = subset(trees, subset= species == 'Acer rubrum', 
+              select = c('cover', 'tci', 'elev', 'beers', 'streamdist',
+                         'disturb'))
+abies = subset(trees, subset= species == 'Abies fraseri', select = c('cover', 'tci', 'elev', 'beers', 'streamdist', 'disturb'))
+
+mod_gen = lm(cover ~ . , data = acer)
+mod_spe = lm(cover ~ . , data = abies)
+
+library(car)
+Anova(mod_gen, type=3)
+Anova(mod_spe, type=3)
+summary(mod_gen)
+summary(mod_spe)
+```
+
+#For each predictor variable, the Anova and summary p values are the same, although the Anova gives up to six decimal points and the summary value gives up to five.
+
+#Model comments: The exploratory model for mod_gen (Acer rubrum) doesn't seem to explain cover very well. Although three variables (elev, beers, streamdist) were flagged as significant according to the p value, there is an adjusted R-squared value of only 0.04. Therefore, the model does not fit the data that well, although p-values are low. 
+
+#For mod_spe (Abies fraseri), cover is explained a little better by one significant variable (elev) with p values less than 0.0001. Also, the adjusted R-squared for mod_spe is 0.5, which isn't great, but it's better than mod_gen. 
+
+#Variance can be explained for Abies fraseri better than for Acer rubrum, due to a maxium Anova F value of 24 for Abies fraseri compared to maximum Anova F value of 10 for Acer rubrum. 
+
+#Diagnostic plots...(help taken from http://www.statmethods.net/stats/rdiagnostics.html for diagnostic ideas)
+
+```{r}
+qqPlot(mod_gen, main="QQ Plot") #qq plot for studentized resid 
+leveragePlots(mod_gen)# leverage plots
+```
+
+#The QQ plot shows that the variance for mod_gen is homogenous on either side of the mean. However on leverage plot "cover vs. tci" there are two outliers that pull distribution down on the left.
+
+```{r}
+resid_mod_gen = residuals(mod_gen) 
+hist(resid_mod_gen, freq=FALSE, main = "Distribution of Residuals")
+```
+#This histogram shows that the residual errors for mod_gen are normally distributed for the most part, although there is a little bit of right skewing. 
+
+```{r}
+qqPlot(mod_spe, main="QQ Plot") #qq plot for studentized resid 
+leveragePlots(mod_spe) #leverage plots
+```
+
+```{r}
+resid_mod_spe = residuals(mod_spe) 
+hist(resid_mod_spe, freq=FALSE, main = "Distribution of Residuals")
+```
+
+#This histogram shows that the data for Abies fraseri might not be normally distributed, violating an OLS assumption. 
+
+#GLM Poisson models
+
+```{r}
+acer = subset(trees, subset= species == 'Acer rubrum', 
+              select = c('cover', 'tci', 'elev', 'beers', 'streamdist',
+                         'disturb'))
+abies = subset(trees, subset= species == 'Abies fraseri', select = c('cover', 'tci', 'elev', 'beers', 'streamdist', 'disturb'))
+
+glm_gen = glm(cover ~ . , data = acer, family = 'poisson')
+glm_spe = glm(cover ~ . , data = abies, family = 'poisson')
+
+library(car)
+Anova(glm_gen, type=3)
+Anova(glm_spe, type=3)
+summary(glm_gen)
+summary(glm_spe)
+```
+
+#Pseudo R2
+
+```{r}
+pseudo_r2 = function(glm_gen) {
+    1 - glm_gen$deviance / glm_gen$null.deviance
+}
+pseudo_r2(glm_gen)
+```
+
+```{r}
+pseudo_r2 = function(glm_spe) {
+    1-glm_spe$deviance/glm_spe$null.deviance
+}
+pseudo_r2(glm_spe)
+```
+
+#The pseudo r2 value for the generalist model was only 0.04, which is a pretty bad fit for the data. However, the psuedo r2 for the specialist model was 0.61, which is much better. 
+
+#Compare residual sums of squares
+
+```{r}
+anova(mod_gen, glm_gen)
+```
+
+```{r}
+anova(mod_spe, glm_spe)
+```
+
+#In both the generalist and specialist models, the glm Poisson distribution resulted in a much lower residual sum of squares. For the Acer rubrum species, the RSS was over four times greater in the ols model, and in the Abies fraseri species, the RSS was over twice as high in ols. 
+
+#Summary of results: For the generalist species Acer rubrum, none of the explanitory variables seem to have a strong effect on cover. However, for the specialist species Abies fraseri, elevation could have a slight correlation to tree cover. 
+
+#function step()
+
+```{r}
+step(mod_gen)
+step(mod_spe)
+step(glm_gen)
+step(glm_spe)
+```
+
+#According to AIC values, of which I think lower is better, step() has chosen only tci and elev to be model predictors with the lowest AIC for the Abies fraseri (mod_spe and glm_spe) models. 
+
