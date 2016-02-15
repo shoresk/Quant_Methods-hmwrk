@@ -1,0 +1,120 @@
+---
+title: 'Assignment #4'
+author: "Sarah Kate Shore"
+date: "February 10, 2016"
+output: pdf_document
+---
+```{r}
+library(vegan)
+data(dune) #community data
+data(dune.env) #environmental data
+?dune
+```
+
+ #Indirect Ordination
+```{r}
+dune_mds = metaMDS(dune)
+plot(dune_mds, type='n', main = "Moisture NMDS")
+text(dune_mds, 'sp', cex=.5)
+# generate vector of colors 
+color_vect = rev(terrain.colors(6))[-1]
+points(dune_mds, 'sites', pch=19, 
+       col=color_vect[dune.env$Moisture])
+legend('topright', paste("Moisture =", 1:5, sep=''), 
+       col=color_vect, pch=19)
+```
+
+#This plot shows the relationship of different dune species to moisture levels in the environment. The different moisture levels correspond to certain species and it appears from brief visual inspection that there are more species in the lower two moisture classes. 
+
+#A1
+```{r}
+dune_mds = metaMDS(dune)
+plot(dune_mds, type='n', main = "A1 NMDS")
+text(dune_mds, 'sp', cex=.5)
+# generate vector of colors 
+color_vect = rev(terrain.colors(6))[-1]
+points(dune_mds, 'sites', pch=19, 
+       col=color_vect[dune.env$A1])
+legend('topright', paste("A1 =", sep=''), 
+       col=color_vect, pch=19)
+```
+
+#Management
+```{r}
+dune_mds = metaMDS(dune)
+plot(dune_mds, type='n', main = "Management NMDS")
+text(dune_mds, 'sp', cex=.5)
+# generate vector of colors 
+color_vect = rev(terrain.colors(6))[-1]
+points(dune_mds, 'sites', pch=19, 
+       col=color_vect[dune.env$Management])
+legend('topright', paste("Management =", unique = "dune.env$Management", sep=''), 
+       col=color_vect, pch=19)
+```
+
+#Use
+```{r}
+dune_mds = metaMDS(dune)
+plot(dune_mds, type='n', main = 'Use NMDS')
+text(dune_mds, 'sp', cex=.5)
+# generate vector of colors 
+color_vect = rev(terrain.colors(6))[-1]
+points(dune_mds, 'sites', pch=19, 
+       col=color_vect[dune.env$Use])
+legend('topright', paste("Use =", unique(dune.env$Use), sep=''), 
+       col=color_vect, pch=19)
+```
+
+#Manure
+```{r}
+dune_mds = metaMDS(dune)
+plot(dune_mds, type='n', main = 'Manure NMDS')
+text(dune_mds, 'sp', cex=.5)
+# generate vector of colors 
+color_vect = rev(terrain.colors(6))[-1]
+points(dune_mds, 'sites', pch=19, 
+       col=color_vect[dune.env$Manure])
+legend('topright', paste("Manure =", 0:4, sep=''), 
+       col=color_vect, pch=19)
+```
+
+#Direct Ordination
+```{r}
+dune_cca = cca(dune ~ dune.env$A1 + dune.env$Moisture + dune.env$Management + dune.env$Use + dune.env$Manure)
+plot(dune_cca, type='n', main = "Moisture CCA")
+text(dune_cca, 'sp', cex=.5)
+# generate vector of colors 
+color_vect = rev(terrain.colors(6))[-1]
+points(dune_cca, 'sites', pch=19, 
+       col=color_vect[dune.env$Moisture])
+ legend('topright', paste("Moisture =", 1:5, sep=''),
+       col=color_vect, pch=19)
+```
+
+#This direct ordination shows a trend of greater species concentration around the lower moisture classes, similar to the NMDS but with greater species clustering. 
+
+#Permutation test
+```{r}
+anova(dune_cca, by = 'margin', permutations = 10)
+```
+
+#It appears that the F values, which signify explained variance over unexplained variance, are greater than one for A1 and Moisture variables, but not for any others, indicating that A1 and Moisture are probably the strongest explanitory axes. 
+
+#A1 CCA
+```{r}
+dune_cca = cca(dune ~ dune.env$A1 + dune.env$Moisture + dune.env$Management + dune.env$Use + dune.env$Manure)
+plot(dune_cca, type='n', main = "A1 CCA")
+text(dune_cca, 'sp', cex=.5)
+# generate vector of colors 
+color_vect = rev(terrain.colors(6))[-1]
+points(dune_cca, 'sites', pch=19, 
+       col=color_vect[dune.env$A1])
+ legend('topright', paste("A1 =", 1:5, sep=''),
+       col=color_vect, pch=19)
+```
+
+#This seems to be more scattered in terms of sites (A1 values), perhaps the A1 legend should not be divided into classes. However, the species are still clustered simliar to the Moisture CCA plot. 
+
+#To compare the NDMS indirect or unconstrained ordination with the CCA direct or constrained ordination, the CCA plot seems to bring together the species similarities in a more tightly explained way, although the two methods are quite similar.  
+
+
