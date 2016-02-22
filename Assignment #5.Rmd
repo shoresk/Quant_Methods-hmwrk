@@ -1,0 +1,170 @@
+---
+title: 'Assignment #5'
+author: "Sarah Kate Shore"
+date: "February 17, 2016"
+output: pdf_document
+---
+```{r}
+library(vegan)
+data(BCI)
+## UTM Coordinates (in metres)
+BCI_xy = data.frame(x = rep(seq(625754, 626654, by=100), each=5), 
+                    y = rep(seq(1011569,  1011969, by=100), len=50))
+```
+                    
+#Use Mantel to look at correlation between species richness and spatial distance 
+
+
+#Rare Species
+```{r}
+BCI_rare = subset(BCI, select = c('Erythroxylum.macrophyllum'))
+Rare_ab = apply(BCI_rare, 1, function(x) sum(x > 0))
+hist(Rare_ab)
+plot(BCI_xy, cex=Rare_ab/max(Rare_ab))
+col_brks = hist(Rare_ab, plot=F)$breaks
+col_indices = as.numeric(cut(Rare_ab, col_brks))
+cols = rev(terrain.colors(length(col_brks)))
+plot(BCI_xy, cex=2, pch=19, col=cols[col_indices])
+```
+#Visually, this plot shows that there may be some spatial dependence due to the linear aggregation of points at the top left of the plot. 
+
+```{r}
+#Euclidean distance between abundances and spatial coordinates
+Rare_dist = dist(Rare_ab)
+xy_dist = dist(BCI_xy)
+max_dist = max(xy_dist) / 2
+plot(xy_dist, Rare_dist)
+abline(lm(Rare_dist ~ xy_dist), lwd=3, col='red')
+lines(lowess(xy_dist, Rare_dist), lwd=3, col='pink')
+abline(v = max_dist, col='red', lwd=3, lty=2)
+```
+
+```{r}
+#Observed Correlation
+obs_cor = cor(xy_dist, Rare_dist)
+obs_cor
+```
+#The correlation is 0.009, which does not indicate much spatial dependence. 
+
+```{r}
+#mantel statstics 
+library('vegan')
+Rare_mantel = mantel(xy_dist, Rare_dist)
+Rare_mantel
+```
+#Significance value for mantel is 0.397, so this does not seem to be a spatially dependent species. 
+
+```{r}
+rare_dist = vegdist(BCI_rare)
+plot(xy_dist, rare_dist)
+abline(lm(rare_dist ~ xy_dist), lwd=3, col='red')
+lines(lowess(xy_dist, rare_dist), lwd=3, col='pink')
+abline(v = max_dist, col='red', lwd=3, lty=2)
+```
+#Lowess line is really odd, definitely not linear. 
+
+#Common Species Spatial Distribution
+```{r}
+BCI_common = subset(BCI, select = 'Guarea.guidonia')
+Com_ab = apply(BCI_common, 1, function(x) sum(x > 0))
+hist(Com_ab)
+plot(BCI_xy, cex = Com_ab/max(Com_ab))
+col_brks = hist(Com_ab, plot=F)$breaks
+col_indices = as.numeric(cut(Com_ab, col_brks))
+cols = rev(terrain.colors(length(col_brks)))
+plot(BCI_xy, cex = 2, pch=19, col=cols[col_indices])
+```
+#Different color classes not showing up, however does not appear aggregated at all. 
+
+```{r}
+Com_dist = dist(Com_ab)
+xy_dist = dist(BCI_xy)
+max_dist = max(xy_dist) / 2
+plot(xy_dist, Com_dist)
+abline(lm(Com_dist ~ xy_dist), lwd=3, col='red')
+lines(lowess(xy_dist, Com_dist), lwd=3, col='pink')
+abline(v = max_dist, col='red', lwd=3, lty=2)
+```
+
+```{r}
+obs_cor = cor(xy_dist, Com_dist)
+obs_cor
+```
+#Correlation value is 0.02, better than that of rare species but still not high at all. 
+
+```{r}
+library('vegan')
+Com_mantel = mantel(xy_dist, Com_dist)
+Com_mantel
+```
+#Mantel significance at 0.376, not significant, so no spatial correlation detected. 
+
+```{r}
+comm_dist = vegdist(BCI_common)
+plot(xy_dist, comm_dist)
+abline(lm(comm_dist ~ xy_dist), lwd=3, col='red')
+lines(lowess(xy_dist, comm_dist), lwd=3, col='pink')
+abline(v = max_dist, col='red', lwd=3, lty=2)
+```
+#Crazy lowess line, the regular linear fit line does have an upward trend, but still I don't see any evidence for spatial correlations. 
+
+#Question 2 Univariate Modeling
+
+#Single Predictor Variable
+```{r}
+library(nlme)
+library(vegan)
+#Define what data is used
+sp_ids = c("Drypetes.standleyi", "Cordia.lasiocalyx", "Hirtella.triandra",
+           "Picramnia.latifolia", "Quassia.amara",
+           "Tabernaemontana.arborea", "Trattinnickia.aspera", 
+           "Xylopia.macrantha")
+sp_dat = data.frame(BCI, BCI_xy)
+BCI_sp = subset(sp_dat, select=sp_ids)
+x = BCI_xy$x
+y = BCI_xy$y
+#Model plotting one predictor variable for Drypetes.standleyi
+One_sp_mod = gls(Drypetes.standleyi ~ Xylopia.macrantha, data = BCI_sp)
+par(mfrow=c(1,1))
+plot(Variogram(One_sp_mod, form = ~ x + y))
+#Model with nugget
+One_sp_nug = update(One_sp_mod, corr=corRatio(form= ~ x + y, nugget=T))
+plot(Variogram(One_sp_nug, maxDist = max_dist))
+plot(Variogram(One_sp_nug, resType='n', maxDist = max_dist))
+
+One_sp_mod
+One_sp_nug
+
+#Anova to compare 
+anova(One_sp_mod, One_sp_nug)
+```
+#Coefficients for one species predictor model reduced by over 0.5 (50%) when spatial error term added. 
+#The anova shows that the influence of the nugget causes a >10 change in the AIC between the two models. 
+
+#Multiple Predictor Variables
+```{r}
+library(nlme)
+#Define data
+sp_ids = c("Drypetes.standleyi", "Cordia.lasiocalyx", "Hirtella.triandra", "Picramnia.latifolia", "Quassia.amara", "Tabernaemontana.arborea", "Trattinnickia.aspera", "Xylopia.macrantha")
+sp_dat = data.frame(BCI, BCI_xy)
+BCI_sp = subset(sp_dat, select=sp_ids)
+x = BCI_xy$x
+y = BCI_xy$y
+#Model plotting multiple predictor variables for Drypetes.standleyi
+Mult_sp_mod = gls(Drypetes.standleyi ~  Cordia.lasiocalyx + Hirtella.triandra + Picramnia.latifolia + Quassia.amara + Tabernaemontana.arborea + Trattinnickia.aspera + Xylopia.macrantha, data = BCI_sp)
+par(mfrow=c(1,1))
+plot(Variogram(Mult_sp_mod, form = ~ x + y))
+#Model with nugget
+Mult_sp_nug = update(Mult_sp_mod, corr=corRatio(form= ~ x + y, nugget=T))
+plot(Variogram(Mult_sp_nug, maxDist = max_dist))
+plot(Variogram(Mult_sp_nug, resType='n', maxDist = max_dist))
+
+Mult_sp_mod
+Mult_sp_nug
+
+#Anova to compare models 
+anova(Mult_sp_mod, Mult_sp_nug)
+```
+#Coefficients decreased for all variables except for Tabernaemontana.arborea, which went from a negative value to a positive value. 
+#When the models were compared with anova, the AIC did not change by 10, but instead by 4. 
+#For the most part, both the single predictor value model and the multiple predictor value model are improved by adding a nugget. This is because the nugget accounts for spatial error. Trees in sites such as BCI tend to be at least somewhat aggregated, especially in common species with many instances. Adding the nugget changes the y intercept and allows the Semivariograms to have a better fit. 
